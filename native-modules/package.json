@@ -1,0 +1,11 @@
+{
+  "name": "node-native-modules-hello-world",
+  "version": "0.0.1",
+  "main": "index.js",
+  "license": "MIT",
+  "gypfile": true,
+  "scripts": {
+    "install": "node-gyp rebuild",
+    "start": "node index.js"
+  }
+}

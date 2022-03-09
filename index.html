@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tray App</title>
+    <script src="index.js"></script>
+    <style>* { font-family: sans-serif; }</style>
+  </head>
+  <body>
+    <h1>Example</h1>
+    <button onclick="nw.Window.get().hide()">
+      Hide this window
+    </button>
+    <button onclick="nw.Window.get().showDevTools()">
+      Show dev tools
+    </button>
+    <button onclick="nw.Window.get().close()">
+      Close entire app
+    </button>
+
+    <p> <label for="fonts">Choose a Font:</label></p>
+    <select id="fonts" name="fonts">
+      <option value="">Select a font...</option>
+    </select>
+
+    <!-- Country Select -->
+    <p>Select Country:</p>
+    <select id="selectCountry" onchange="countryChanged(this)">
+        <option value="Antarctica">Antarctica</option>
+        <option value="Canada">Canada</option>
+        <option value="Mexico">Mexico</option>
+        <option value="USA" selected>USA</option>
+    </select>
+
+    <!--US State Select -->
+    <p>Select US State:</p>
+    <select id="selectStateFromXML" onchange="populateStationSelect(this)">
+        <!--option value="">-- Select --</option>-->
+    </select>
+
+    <!--Canadian Province Select -->
+    <p>Select Candian Province:</p>
+    <select id="selectProvinceFromXML" onchange="populateStationSelect(this)">
+            <!--option value="">-- Select --</option>-->
+    </select>
+
+    <!--Station Select -->
+    <!-- TODO: need to immediately save the stationIdObj to the store -->
+    <p>Select XML-sourced Station:</p>
+    <select id="selectStationFromXML" onchange="stationChange(this)"> <!-- was getTemp(this) -->
+        <option value="">-- Select --</option>
+    </select>
+
+
+
+
+
+
+  <br><br>
+  <p>Select Units</p>
+  <input type="radio" id="fahrenheit" name="units" value="F">
+  <label for="fahrenheit">Fahrenheit (Imperial)</label><br>
+  <input type="radio" id="celsius" name="units" value="C">
+  <label for="celsius">Celsius (Metric)</label><br>
+
+
+
+
+    
+  </body>
+</html>

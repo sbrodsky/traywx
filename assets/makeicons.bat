@@ -1,0 +1,12 @@
+rem range was 17 to 08
+printf "100"|convert -pointsize 14 label:@- 100.png
+printf "99"|convert -pointsize 14 label:@- 99.png
+printf "98"|convert -pointsize 14 label:@- 98.png
+printf "97"|convert -pointsize 14 label:@- 97.png
+printf "96"|convert -pointsize 14 label:@- 96.png
+printf "95"|convert -pointsize 14 label:@- 95.png
+printf "94"|convert -pointsize 14 label:@- 94.png
+printf "93"|convert -pointsize 14 label:@- 93.png
+printf "92"|convert -pointsize 14 label:@- 92.png
+printf "91"|convert -pointsize 14 label:@- 91.png
+printf "90"|convert -pointsize 14 label:@- 90.png
