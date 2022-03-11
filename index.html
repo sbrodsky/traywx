@@ -23,30 +23,24 @@
     </select>
 
     <!-- Country Select -->
+    <div id = "country">
     <p>Select Country:</p>
-    <select id="selectCountry" onchange="countryChanged(this)">
-        <option value="Antarctica">Antarctica</option>
-        <option value="Canada">Canada</option>
-        <option value="Mexico">Mexico</option>
-        <option value="USA" selected>USA</option>
+    <select id="selectCountry" onchange="uiCountryOnChange()">
     </select>
+    </div>
 
-    <!--US State Select -->
-    <p>Select US State:</p>
-    <select id="selectStateFromXML" onchange="populateStationSelect(this)">
-        <!--option value="">-- Select --</option>-->
-    </select>
-
-    <!--Canadian Province Select -->
-    <p>Select Candian Province:</p>
-    <select id="selectProvinceFromXML" onchange="populateStationSelect(this)">
-            <!--option value="">-- Select --</option>-->
-    </select>
+    <!--State/Province/Region Select -->
+    <div id = "stateprovinceregion">
+      <p>Select State/Province/Region:</p>
+      <select id="selectstateprovinceregion" onchange="uiStateOnChange(this)"> 
+          <option value="">-- Select --</option>-->
+      </select>
+    </div>
 
     <!--Station Select -->
     <!-- TODO: need to immediately save the stationIdObj to the store -->
-    <p>Select XML-sourced Station:</p>
-    <select id="selectStationFromXML" onchange="stationChange(this)"> <!-- was getTemp(this) -->
+    <p>Select Observation Station:</p>
+    <select id="selectStation" onchange="uiStationChange(this)"> <!-- was getTemp(this) -->
         <option value="">-- Select --</option>
     </select>
 

@@ -7,55 +7,71 @@ var xml2js = require('xml2js');
 // eslint-disable-next-line no-undef
 var Storage = require('node-storage');
 //var canvas = require('canvas');
+// eslint-disable-next-line no-undef
 const { exec } = require("child_process");
 
 const dynamic_icon_generation_enabled = 1;
 var store = new Storage('assets/node-storage.dat');
 var mexicanStatesArray = [];
 var provincesArray = [];
+var selectedState;
+var selectedStationId;
+var selectedCountry;
 var statesArray = [];
 var stationsObjArray = [];
 var stationIdObj;
 var icon_watcher_enabled = 0;
 var parser = new xml2js.Parser();
-
-// eslint-disable-next-line
-function countryChanged(e) {
-  //var ele = document.getElementById('selectCountry');
-  console.log('Selected country is ' + e.options[e.selectedIndex].text + ' and ' + e.options[e.selectedIndex].value);
-  var selectedCountry = e.options[e.selectedIndex].value;
-}
+const antarctica = ['South Pole'];
+const canada = ['AB','BC','NB','NU','ON','QC','SK','YT'];
+const countryArray=["Antarctica","Canada","Mexico","USA"];
+const mexico = ['AGS','BCN','BCS','CDZ','CHH','CHP','CMP','COL','DRN','DTD','JLS','GRR','MDO',
+'MEX','NLE','OAX','QRO','SIN','SLP','SON','TML','VLL','YCT','ZCT'];
+const usa = ['AL','AK','AZ','AR','AS','CA','CO','CT','DE','DC','FL','GA','GU','HI','ID','IL','IN','IA','KS',
+'KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','CM','OH','OK','OR',
+'PA','PR','RI','SC','SD','TN','TX','TT','UT','VT','VA','VI','WA','WV','WI','WY'];
 
 // icon watcher
 if (icon_watcher_enabled) {
-const filePath = 'c:\\node\\traywx\\assets\\-11.png';
-const file = fs.readFileSync(filePath);
-fs.watch(filePath, function(eventName, filename) {
-  if(filename) {
-    console.log('Event : ' + eventName);
-    console.log(filename + ' file Changed, changing tray icon');
-    tray.icon = filePath;
-  }
-  else{
-    console.log('filename not provided or check file access permissions')
-  }
-});
+  const filePath = 'c:\\node\\traywx\\assets\\-11.png';
+  fs.watch(filePath, function(eventName, filename) {
+    if(filename) {
+      console.log('Event : ' + eventName);
+      console.log(filename + ' file Changed, changing tray icon');
+      tray.icon = filePath;
+    }
+    else{
+      console.log('filename not provided or check file access permissions')
+    }
+  });
 }
 
-// get existing stationId if saved
-if (store.get('stationId')) {
-  getTemp(store.get('stationId'));
-  console.log('stationId retrieved from storage => ' + store.get('stationId'));
+// get existing user selected params from the store
+if (store.get('selectedStationId')) {
+  selectedStationId = store.get('selectedStationId');
+  getTemp(store.get('selectedStationId'));
+  selectedState = store.get('selectedState');
+  selectedCountry = store.get('selectedCountry');
+  console.log('Saved settings: ' + selectedCountry + ',' + selectedState + ',' + selectedStationId);
+  //now populate state select based on whatever the user's country is...
+  // probably can't do that yet unless the data has been loaded.
+
 } else {
-  console.log('stationId not found in storage');
-  //store.put('stationId','world');
+  getTemp('KBOS');
+  console.log('stationId not found in storage, create default settings for USA,Boston,KBOS');
+  store.put('selectedCountry','USA');
+  //selectedCountry = 'USA';
+  store.put('selectedState', 'MA');
+  //selectedState = 'MA';
+  store.put('selectedStationId', 'KBOS');
+  //selectedStationId = 'KBOS';
+  //populateStateSelectNew();
 }
 
-// Create a tray icon
 // eslint-disable-next-line no-undef
 let tray = new nw.Tray({
-  title: 'Tray',
-  tooltip: 'Tray App is running',
+  title: 'TrayWx',
+  tooltip: 'TrayWx is running',
   icon: 'assets/icon.png'
 });
 
@@ -130,20 +146,10 @@ nw.Window.get().show();
 // get xml-sourced station listing one-time and put in 'stationsObjArray' array
 fs.readFile('assets/stations.xml', function(err, data) {
   parser.parseString(data, function (err, result) {
-
-    // wx_station_index is the root node of stations:
-    // <station>
-    //   <station_id>CWAV</station_id>
-    //   <state>AB</state>
-    //   <station_name>Sundre</station_name>
     stationsObjArray = result['wx_station_index']['station'];
-    // NLE = Neuvo Leon, MX
-    // MDO = Morelia New, MX
-
     stationsObjArray.sort((a, b) => {
       let fa = a.state[0].toLowerCase() + a.station_name[0].toLowerCase(),
           fb = b.state[0].toLowerCase() + b.station_name[0].toLowerCase();
-  
       if (fa < fb) {
           return -1;
       }
@@ -153,13 +159,108 @@ fs.readFile('assets/stations.xml', function(err, data) {
       return 0;
     });
     
+    console.log('*** all data loaded ***');
     populateRegionArrays();
-    populateStateSelect();
-    populateProvinceSelect();
+    populateCountrySelect();
+    //populateStateSelect();
+    console.log('b4 call to populatestateselectnew, selectedCountry = ' + selectedCountry);
+    populateStateSelectNew();
+    populateStationSelect(selectedState);
   });
 });
 
+function getTemp(stationIdObj) {
+  console.log('in getTemp, stationIdObj = ' + stationIdObj);
+  let url = `https://api.weather.gov/stations/${stationIdObj}/observations/latest?require_qc=true`;
+  if (selectedStationId == 'ASPS') {
+    url = 'https://www.usap.gov/components/webcams.cfc?method=outputWeatherDataByStation&cameraLocation=South%20Pole&_=1646448579378';
+  }
+  // line above this was stationIdObj.value but changed it to stationIdObj instead
+  console.log(url);
+  axios.get(url) 
+  .then(response => {
+    var tempF; 
+    if (selectedStationId == 'ASPS') {
+      console.log('Antarctica response => ' + JSON.stringify(response.data));
+      var responseData = response.data.toString();
+      let tmp_match = responseData.match(/-*\d+&deg;\sF/);
+      console.log('South Pole tmp_match = ' + tmp_match);
+      tempF = tmp_match.toString().match(/-*\d+/);
+      console.log('South Pole tempF = ' + tempF);
+      //tray.icon = "assets/" + tempF + ".png";
+    } else {
+      var tempC = response.data.properties.temperature.value;
+      tempF = Math.round(tempC * 9/5) + 32;
+      console.log ('tempF=' + tempF); 
+      //tray.icon = "assets/" + tempF + ".png";
+    }
+      
+      //tray.icon = "assets/" + tempF + ".png";
+      doIcon(tempF);
+      var moment = require('moment');
+      tray.tooltip = tempF + " updated " + moment().format('MMMM Do YYYY, h:mm a');
+      console.log(tray.tooltip);
+    })
+  .catch(function (error) {
+      if (error.response) {
+        // Request made and server responded
+        console.log('error.response.data =' + error.response.data);
+        console.log('error.response.status = ' + error.response.status);
+        console.log('error.response.headers = ' + error.response.headers);
+        tray.tooltip = 'Unable to access weather for this locale';
+        tray.icon = "assets/E.png";
+      } else if (error.request) {
+        // The request was made but no response was received
+        tray.tooltip = 'Unable to access weather for this locale';
+        console.log('error.request=' + error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.log('Unk Error', error.message);
+        tray.tooltip = 'Unable to access weather for this locale';
+      }
+    })
+}
 
+function doIcon(tempF) {
+  console.log('doIcon: tempF = ' + tempF);
+  if (fs.existsSync(`assets/${tempF}.png`)) {
+    console.log('assets/${tempF} exists');
+    tray.icon = `assets/${tempF}.png`;
+  } else {
+      if (dynamic_icon_generation_enabled) {
+        tray.icon = "assets/icon.png";
+        var color = '#7cfc00';
+        color = '#ffffff';
+        var cmd = `node createicon ${tempF} ${color}`;
+        console.log('calling ' + cmd);
+        exec(cmd, function(error, stdout, stderr) {
+          if (error) {
+            console.log(error);
+            tray.icon = `assets/E.png`;
+            tray.tooltip = 'Could not create assets/${tempF}.png';
+            return;
+          }
+          if (stderr) {
+            console.log(stderr);
+            tray.icon = `assets/E.png`;
+            tray.tooltip = 'Could not create assets/${tempF}.png';
+            return;
+          }
+        })
+        tray.icon = `assets/${tempF}.png`;
+      }
+  }
+}
+
+function populateCountrySelect() {
+  var ele = document.getElementById('selectCountry');
+  for (const country of countryArray) {
+    ele.innerHTML = ele.innerHTML +
+      '<option ' + selected(selectedCountry, country) + ' value="' + country + '">' + country + '</option>';
+  } 
+}
+
+// old
 function populateRegionArrays() {
   console.log("populateRegionArrays");
   for (const station of stationsObjArray) {
@@ -183,20 +284,89 @@ function populateRegionArrays() {
   }
 }
 
-function populateProvinceSelect() {
-  var ele = document.getElementById('selectProvinceFromXML');
-  for (const province of provincesArray) {
-    ele.innerHTML = ele.innerHTML +
-      '<option value="' + province + '">' + province + '</option>';
-  } 
+
+//new, maybe
+function populateStateArray() {
+  console.log('populate state array');
+  for (const station of stationObjArray) {
+    if (!statesArray.includes(station.state[0])) {
+      statesArray.push(station.state[0]);
+    }
+  }
 }
 
 function populateStateSelect() {
   var ele = document.getElementById('selectStateFromXML');
   for (const state of statesArray) {
     ele.innerHTML = ele.innerHTML +
-      '<option value="' + state + '">' + state + '</option>';
+      '<option ' + selected(selectedState, state) + ' value="' + state + '">' + state + '</option>';
   } 
+}
+
+// new
+function populateStateSelectNew() {
+  console.log('populateStateSelectNew()');
+  var selectedCountry = document.getElementById('selectCountry').value;
+  console.log('selected country = ' + selectedCountry);
+
+  var ele = document.getElementById('selectstateprovinceregion');
+  ele.innerHTML = '';
+  var ary;
+  if (selectedCountry == 'Antarctica') {
+    ary = antarctica;
+  } else if (selectedCountry == 'Canada') {
+    console.log('user selected country is Canada');
+    console.log('canada const array is ' + canada);
+    ary = canada;
+  } else if (selectedCountry == 'Mexico') {
+    ary = mexico;
+  } else {
+    ary = usa;
+  }
+
+  for (const state of ary) {
+    ele.innerHTML = ele.innerHTML +
+      '<option ' + selected(selectedState, state) + ' value="' + state + '">' + state + '</option>';
+  } 
+}
+
+function populateStationSelect(state) {
+  console.log('in populateStationSelect(' + state + ')');
+  var selectedState = document.getElementById('selectstateprovinceregion').value;
+  // todo cleanup above may not be needed
+  var ele = document.getElementById('selectStation');
+  //console.log('pss:len of stationsObjArray is ' + stationsObjArray.length);
+
+  ele.innerHTML = '';
+  for (const station of stationsObjArray) {
+      var station_id = station.station_id[0];
+      var station_name = station.station_name[0];
+      var station_state = station.state[0];
+      //console.log('pss:processing station_id = ' + station_id + ' associated with state = ' + station_state);
+      if (station_state === selectedState) {
+          ele.innerHTML = ele.innerHTML +
+          '<option ' + selected(selectedStationId, station_id) + ' value="' + station_id + '">' + station_state + ' - ' + station_name + '</option>';
+          console.log('pps:match');
+      }
+  }
+
+  if (selectedState == 'South Pole') {
+    ele.innerHTML = '<option selected value="ASPS">Antarctic South Pole Station</option>';
+    selectedStationId = 'ASPS';
+  }
+
+  store.put('selectedStationId',selectedStationId);
+  console.log('selectedStationId()... calling getTemp(' + selectedStationId + ')');
+  getTemp(selectedStationId);
+  
+} 
+
+function selected(s1, s2) {
+  if (s1 == s2) {
+    return 'selected';
+  } else {
+    return '';
+  }
 }
 
 // hide tray window
@@ -231,90 +401,39 @@ window.onunload = () => {
   tray = null;
 };
 
-function getTemp(stationIdObj) {
-  console.log('in getTemp, stationIdObj = ' + stationIdObj);
-  let url = `https://api.weather.gov/stations/${stationIdObj}/observations/latest?require_qc=true`;
-  // line above this was stationIdObj.value but changed it to stationIdObj instead
-  console.log(url);
-  axios.get(url) 
-  .then(response => { 
-    console.log('response.title = ' + response.title);
-      var tempC = response.data.properties.temperature.value;
-      var tempF = Math.round(tempC * 9/5) + 32;
-      console.log ('tempF=' + tempF); 
-      tray.icon = "assets/" + tempF + ".png";
-      
-      // causes NW not to launch, prob cuz module is a native one
-      if (dynamic_icon_generation_enabled) {
-        tray.icon = "assets/icon.png";
-        var color = '#7cfc00';
-        color = '#ffffff';
-        var cmd = `node createicon ${tempF} ${color}`;
-        console.log('calling ' + cmd);
-        exec(cmd, function(error, stdout, stderr) {
-          if (error) {
-            console.log(error);
-              return;
-          }
-          if (stderr) {
-            console.log(stderr);
-              return;
-          }
-        })
-      }
-      tray.icon = "assets/" + tempF + ".png";
-      var moment = require('moment');
-      tray.tooltip = tempF + " updated " + moment().format('MMMM Do YYYY, h:mm a');
-      console.log(tray.tooltip);
-    })
-  .catch(function (error) {
-      if (error.response) {
-        // Request made and server responded
-        console.log('error.response.data =' + error.response.data);
-        console.log('error.response.status = ' + error.response.status);
-        console.log('error.response.headers = ' + error.response.headers);
-        tray.tooltip = 'Unable to access weather for this locale';
-        tray.icon = "assets/E.png";
-      } else if (error.request) {
-        // The request was made but no response was received
-        tray.tooltip = 'Unable to access weather for this locale';
-        console.log('error.request=' + error.request);
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log('Unk Error', error.message);
-        tray.tooltip = 'Unable to access weather for this locale';
-      }
-    })
+// eslint-disable-next-line
+function uiCountryOnChange() {
+  var e = document.getElementById('selectCountry');
+  console.log('Selected country is, text = ' + e.options[e.selectedIndex].text + ' / val = ' + e.options[e.selectedIndex].value);
+  var selectedCountry = e.options[e.selectedIndex].value;
+  store.put('selectedCountry',selectedCountry);
+  populateStateSelectNew();
+  //if (selectedCountry == 'Antarctica') {
+  //  document.getElementById("state").style.visibility = "hidden";
+  //  document.getElementById("province").style.visibility = "hidden";
+  //}
 }
 
-
-// based on user selection, populate station select
-function populateStationSelect(s) {
-  console.log('populateStationSelectFromStationsXML()');
-  //var s = document.getElementById('selectStateFromXML');
-  console.log('Selected state is ' + s.options[s.selectedIndex].text + ' and ' + s.options[s.selectedIndex].value);
-  var selectedStateAbbrev = s.options[s.selectedIndex].value;
-
-  var ele = document.getElementById('selectStationFromXML');
-  ele.innerHTML = '';
-
-  for (const station of stationsObjArray) {
-      var station_id = station.station_id[0];
-      var state = station.state[0];
-      var station_name = station.station_name[0];
-      //console.log(state + '\t' + station_name + '\t' + station_id);
-      if (state === selectedStateAbbrev) {
-          ele.innerHTML = ele.innerHTML +
-          '<option value="' + station_id + '">' + state + ' - ' + station_name + '</option>';
-      }
-  }
+// eslint-disable-next-line
+function uiStateOnChange() {
+  var e = document.getElementById('selectstateprovinceregion');
+  console.log('usoc:Selected state is, text = ' + e.options[e.selectedIndex].text + ' / val = ' + e.options[e.selectedIndex].value);
+  var selectedState = e.options[e.selectedIndex].value;
+  console.log('usoc:selectedState is now ' + selectedState);
+  store.put('selectedState',selectedState);
+  console.log('usoc:calling popultatestationselect with a parm of -> ' + selectedState);
+  populateStationSelect(selectedState);
+  //if (selectedCountry == 'Antarctica') {
+  //  document.getElementById("state").style.visibility = "hidden";
+  //  document.getElementById("province").style.visibility = "hidden";
+  //}
 }
 
-function stationChange(selectObject) {
+function uiStationChange(selectObject) {
   var station = selectObject.value;
   console.log(station);
-  store.put('stationId',station);
-  console.log('calling getTemp(' + station + ')');
+  store.put('selectedStationId',station);
+  console.log('uiStationChange()... calling getTemp(' + station + ')');
   getTemp(station);
 }
 
