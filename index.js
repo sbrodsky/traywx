@@ -19,7 +19,6 @@ var selectedStationId;
 var selectedCountry;
 var statesArray = [];
 var stationsObjArray = [];
-var stationIdObj;
 var icon_watcher_enabled = 0;
 var parser = new xml2js.Parser();
 const antarctica = ['South Pole'];
@@ -55,7 +54,6 @@ if (store.get('selectedStationId')) {
   console.log('Saved settings: ' + selectedCountry + ',' + selectedState + ',' + selectedStationId);
   //now populate state select based on whatever the user's country is...
   // probably can't do that yet unless the data has been loaded.
-
 } else {
   getTemp('KBOS');
   console.log('stationId not found in storage, create default settings for USA,Boston,KBOS');
@@ -82,6 +80,17 @@ let itemChecked = true;
 
 // Create an array of the items to be placed in the menu
 let menuItems = [
+  {
+    type: 'normal',
+    label: 'Fetched at ...'
+  },
+  {
+    type: 'normal',
+    label: 'Data Fetched at ...'
+  },
+  {
+    type: 'separator'
+  },
   {
     type: 'checkbox',
     label: 'Checkbox',
@@ -132,7 +141,17 @@ let menuItems = [
 menuItems.forEach(function (item) {
   // eslint-disable-next-line no-undef
   menu.append(new nw.MenuItem(item));
+  console.log('menu = ' + JSON.stringify(menu));
 });
+
+
+
+// Iterate menu's items
+for (var i = 0; i < menu.items.length; ++i) {
+  console.log(menu.items[i]);
+}
+//menu.items[0].label = 'test';
+
 
 // Place the menu in the tray
 tray.menu = menu;
@@ -160,7 +179,7 @@ fs.readFile('assets/stations.xml', function(err, data) {
     });
     
     console.log('*** all data loaded ***');
-    populateRegionArrays();
+    //populateRegionArrays();
     populateCountrySelect();
     //populateStateSelect();
     console.log('b4 call to populatestateselectnew, selectedCountry = ' + selectedCountry);
@@ -184,23 +203,21 @@ function getTemp(stationIdObj) {
       console.log('Antarctica response => ' + JSON.stringify(response.data));
       var responseData = response.data.toString();
       let tmp_match = responseData.match(/-*\d+&deg;\sF/);
-      console.log('South Pole tmp_match = ' + tmp_match);
       tempF = tmp_match.toString().match(/-*\d+/);
-      console.log('South Pole tempF = ' + tempF);
-      //tray.icon = "assets/" + tempF + ".png";
     } else {
+      console.log('US NWS response => ' + JSON.stringify(response.data));
+      //console.log(response.data.properties.timestamp);
+      menu.items[1].label = 'Data: ' + response.data.properties.timestamp;
       var tempC = response.data.properties.temperature.value;
       tempF = Math.round(tempC * 9/5) + 32;
-      console.log ('tempF=' + tempF); 
-      //tray.icon = "assets/" + tempF + ".png";
     }
       
-      //tray.icon = "assets/" + tempF + ".png";
-      doIcon(tempF);
-      var moment = require('moment');
-      tray.tooltip = tempF + " updated " + moment().format('MMMM Do YYYY, h:mm a');
-      console.log(tray.tooltip);
-    })
+    doIcon(tempF);
+    var moment = require('moment');
+    tray.tooltip = tempF + " updated " + moment().format('MMMM Do YYYY, h:mm a');
+    menu.items[0].label = "Fetched: " + moment().format('MMMM Do YYYY, h:mm a');
+    
+  })
   .catch(function (error) {
       if (error.response) {
         // Request made and server responded
@@ -284,8 +301,6 @@ function populateRegionArrays() {
   }
 }
 
-
-//new, maybe
 function populateStateArray() {
   console.log('populate state array');
   for (const station of stationObjArray) {
@@ -303,7 +318,6 @@ function populateStateSelect() {
   } 
 }
 
-// new
 function populateStateSelectNew() {
   console.log('populateStateSelectNew()');
   var selectedCountry = document.getElementById('selectCountry').value;
@@ -380,17 +394,7 @@ function selected(s1, s2) {
 // get Temperature every 30 min
 // note: 1000ms = 1 sec, * 60 makes it one min, * 30 makes it 30 min
 async function intervalFunc() {
-  console.log('intervalfn calling getTemp with param ' + stationIdObj);
-  getTemp(stationIdObj);
-  //console.log('intervalFunc');
-  //var tempC = await getTemp();
-  //console.log('tempC=' + tempC);
-  //var tempF = Math.round(tempC * 9/5) + 32;
-  //console.log ('tempF=' + tempF); 
-  //    tray.icon = "assets/" + tempF + ".png" 
-  //    var moment = require('moment');
-  //    tray.tooltip = "updated " + moment().format('MMMM Do YYYY, h:mm a');
-  //    console.log(tray.tooltip);
+  getTemp(selectedStationId);
 }
 setInterval(intervalFunc,1000*60*30);
 
