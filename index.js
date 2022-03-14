@@ -58,12 +58,8 @@ if (store.get('selectedStationId')) {
   getTemp('KBOS');
   console.log('stationId not found in storage, create default settings for USA,Boston,KBOS');
   store.put('selectedCountry','USA');
-  //selectedCountry = 'USA';
   store.put('selectedState', 'MA');
-  //selectedState = 'MA';
   store.put('selectedStationId', 'KBOS');
-  //selectedStationId = 'KBOS';
-  //populateStateSelectNew();
 }
 
 // eslint-disable-next-line no-undef
@@ -144,12 +140,10 @@ menuItems.forEach(function (item) {
   console.log('menu = ' + JSON.stringify(menu));
 });
 
-
-
 // Iterate menu's items
-for (var i = 0; i < menu.items.length; ++i) {
-  console.log(menu.items[i]);
-}
+//for (var i = 0; i < menu.items.length; ++i) {
+//  console.log(menu.items[i]);
+//}
 //menu.items[0].label = 'test';
 
 
@@ -162,10 +156,30 @@ nw.Window.get().showDevTools();
 // eslint-disable-next-line no-undef
 nw.Window.get().show();
 
-// get xml-sourced station listing one-time and put in 'stationsObjArray' array
+// get xml-sourced station listing and put in 'stationsObjArray' sorted array
 fs.readFile('assets/stations.xml', function(err, data) {
+  console.log('reading stations.xml');
   parser.parseString(data, function (err, result) {
+    console.log('assign to array');
     stationsObjArray = result['wx_station_index']['station'];
+    console.log('len is ' + stationsObjArray.length);
+    getManualStations();
+  });
+  console.log('*** all data loaded ***');
+  populateCountrySelect();
+  populateStateSelect();
+  populateStationSelect();
+});
+
+function getManualStations() {
+// get 2nd xml-sourced station listing and put in 'stationsObjArray' sorted array
+fs.readFile('assets/manual_stations.xml', function(err, data) {
+  console.log('reading manual-stations.xml');
+  parser.parseString(data, function (err, result) {
+    console.log('manual stations len is ' + stationsObjArray.length);
+    let stationsObjArray2 = result['wx_station_index']['station'];
+    stationsObjArray.push.apply(stationsObjArray, stationsObjArray2);
+
     stationsObjArray.sort((a, b) => {
       let fa = a.state[0].toLowerCase() + a.station_name[0].toLowerCase(),
           fb = b.state[0].toLowerCase() + b.station_name[0].toLowerCase();
@@ -179,15 +193,12 @@ fs.readFile('assets/stations.xml', function(err, data) {
     });
     
     console.log('*** all data loaded ***');
-    //populateRegionArrays();
     populateCountrySelect();
-    //populateStateSelect();
-    console.log('b4 call to populatestateselectnew, selectedCountry = ' + selectedCountry);
-    populateStateSelectNew();
-    populateStationSelect(selectedState);
+    populateStateSelect();
+    populateStationSelect();
   });
 });
-
+}
 function getTemp(stationIdObj) {
   console.log('in getTemp, stationIdObj = ' + stationIdObj);
   let url = `https://api.weather.gov/stations/${stationIdObj}/observations/latest?require_qc=true`;
@@ -200,12 +211,12 @@ function getTemp(stationIdObj) {
   .then(response => {
     var tempF; 
     if (selectedStationId == 'ASPS') {
-      console.log('Antarctica response => ' + JSON.stringify(response.data));
-      var responseData = response.data.toString();
+      //console.log('Antarctica response => ' + JSON.stringify(response.data));
+      var responseData = response.data;
       let tmp_match = responseData.match(/-*\d+&deg;\sF/);
       tempF = tmp_match.toString().match(/-*\d+/);
     } else {
-      console.log('US NWS response => ' + JSON.stringify(response.data));
+      //console.log('US NWS response => ' + JSON.stringify(response.data));
       //console.log(response.data.properties.timestamp);
       menu.items[1].label = 'Data: ' + response.data.properties.timestamp;
       var tempC = response.data.properties.temperature.value;
@@ -241,7 +252,7 @@ function getTemp(stationIdObj) {
 function doIcon(tempF) {
   console.log('doIcon: tempF = ' + tempF);
   if (fs.existsSync(`assets/${tempF}.png`)) {
-    console.log('assets/${tempF} exists');
+    console.log(`assets/${tempF} exists`);
     tray.icon = `assets/${tempF}.png`;
   } else {
       if (dynamic_icon_generation_enabled) {
@@ -311,20 +322,11 @@ function populateStateArray() {
 }
 
 function populateStateSelect() {
-  var ele = document.getElementById('selectStateFromXML');
-  for (const state of statesArray) {
-    ele.innerHTML = ele.innerHTML +
-      '<option ' + selected(selectedState, state) + ' value="' + state + '">' + state + '</option>';
-  } 
-}
-
-function populateStateSelectNew() {
-  console.log('populateStateSelectNew()');
   var selectedCountry = document.getElementById('selectCountry').value;
-  console.log('selected country = ' + selectedCountry);
-
+  console.log('populateStateSelect():selected country = ' + selectedCountry);
   var ele = document.getElementById('selectstateprovinceregion');
   ele.innerHTML = '';
+  // set ary to point to the hardcdoded arrays of states per country
   var ary;
   if (selectedCountry == 'Antarctica') {
     ary = antarctica;
@@ -344,38 +346,47 @@ function populateStateSelectNew() {
   } 
 }
 
-function populateStationSelect(state) {
-  console.log('in populateStationSelect(' + state + ')');
+function populateStationSelect() {
+  console.log('in populateStationSelect()');
+  console.log('selectedStationId = ' + selectedStationId);
   var selectedState = document.getElementById('selectstateprovinceregion').value;
-  // todo cleanup above may not be needed
+  console.log('pss:selectedState = ' + selectedState);
   var ele = document.getElementById('selectStation');
-  //console.log('pss:len of stationsObjArray is ' + stationsObjArray.length);
 
   ele.innerHTML = '';
-  for (const station of stationsObjArray) {
+  if (selectedState == 'South Pole') {
+    console.log('populateStationSelect()... selectedState is "South Pole"');
+    ele.innerHTML = '<option selected value="ASPS">Antarctic South Pole Station</option>';
+    selectedStationId = 'ASPS';
+  } else {
+    // antarctica is missing from stationsObjArray
+    for (const station of stationsObjArray) {
       var station_id = station.station_id[0];
       var station_name = station.station_name[0];
       var station_state = station.state[0];
       //console.log('pss:processing station_id = ' + station_id + ' associated with state = ' + station_state);
       if (station_state === selectedState) {
-          ele.innerHTML = ele.innerHTML +
+        console.log('pps:match between passed param ' + selectedState + ' and looped state ' + station_state);
+        console.log('pps:station_id = ' + station_id);
+        console.log('pps:station_name = ' + station_name);
+        console.log('pps:station_state = ' + station_state);
+        console.log('pps:now look for match on stationIds...');
+        ele.innerHTML = ele.innerHTML +
           '<option ' + selected(selectedStationId, station_id) + ' value="' + station_id + '">' + station_state + ' - ' + station_name + '</option>';
-          console.log('pps:match');
+        //selectedStationId = station_id;  // global var, can't do this here cuz it will overwrite  our saved stationId!
+        
       }
+    }
   }
 
-  if (selectedState == 'South Pole') {
-    ele.innerHTML = '<option selected value="ASPS">Antarctic South Pole Station</option>';
-    selectedStationId = 'ASPS';
-  }
-
-  store.put('selectedStationId',selectedStationId);
+  store.put('selectedStationId', selectedStationId);
   console.log('selectedStationId()... calling getTemp(' + selectedStationId + ')');
   getTemp(selectedStationId);
-  
+  console.log('after call to gettemp, selectedStationId is ' + selectedStationId);
 } 
 
 function selected(s1, s2) {
+  console.log('selected ' + s1 + ' vs. ' + s2);
   if (s1 == s2) {
     return 'selected';
   } else {
@@ -411,7 +422,9 @@ function uiCountryOnChange() {
   console.log('Selected country is, text = ' + e.options[e.selectedIndex].text + ' / val = ' + e.options[e.selectedIndex].value);
   var selectedCountry = e.options[e.selectedIndex].value;
   store.put('selectedCountry',selectedCountry);
-  populateStateSelectNew();
+  console.log('uiCountryChange() calling populateStateSelect()');
+  populateStateSelect();
+  populateStationSelect();
   //if (selectedCountry == 'Antarctica') {
   //  document.getElementById("state").style.visibility = "hidden";
   //  document.getElementById("province").style.visibility = "hidden";
@@ -434,11 +447,12 @@ function uiStateOnChange() {
 }
 
 function uiStationChange(selectObject) {
-  var station = selectObject.value;
-  console.log(station);
-  store.put('selectedStationId',station);
-  console.log('uiStationChange()... calling getTemp(' + station + ')');
-  getTemp(station);
+  var stationId = selectObject.value;
+  console.log('uiStationChange()... stationId is now -> ' + stationId);
+  store.put('selectedStationId',stationId);
+  console.log('uiStationChange()... calling getTemp(' + stationId + ')');
+  selectedStationId = stationId;
+  getTemp(stationId);
 }
 
 
