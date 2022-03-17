@@ -9,6 +9,12 @@ const Canvas = require('canvas')
 const canvas = Canvas.createCanvas(400, 400)
 const ctx = canvas.getContext('2d')
 
+if (process.argv.length < 3) {
+  console.log('usage: createicon.js string color');
+  console.log('   ex: createicon.js 123 #FFFFFF');
+  process.exit();
+}
+
 var myString = args[0];
 var myColor = args[1];
 ctx.fillStyle = myColor;
@@ -22,7 +28,7 @@ if (myString.length == 3) {
   ctx.font = 'normal normal 328px Verdana';
   ctx.fillText(myString, 90, 320)       // 10-99   place at 0,320
 }
-canvas.createPNGStream().pipe(fs.createWriteStream(path.join('c:/node/traywx/assets', myString+'.png')));
+canvas.createPNGStream().pipe(fs.createWriteStream(path.join('c:\traywx\assets', myString+'.png')));
 console.log('created ' + myString + '.png');
 
 //temp = 'E';
