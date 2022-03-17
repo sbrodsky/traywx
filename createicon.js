@@ -28,8 +28,8 @@ if (myString.length == 3) {
   ctx.font = 'normal normal 328px Verdana';
   ctx.fillText(myString, 90, 320)       // 10-99   place at 0,320
 }
-canvas.createPNGStream().pipe(fs.createWriteStream(path.join('c:\traywx\assets', myString+'.png')));
-console.log('created ' + myString + '.png');
+console.log('myString = ' + myString);
+canvas.createPNGStream().pipe(fs.createWriteStream(path.join('c:\\traywx\\assets', myString + '.png')));
 
 //temp = 'E';
 //ctx.font = 'normal normal 328px Verdana';

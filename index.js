@@ -33,7 +33,7 @@ const usa = ['AL', 'AK', 'AZ', 'AR', 'AS', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', '
 
 // icon watcher
 if (icon_watcher_enabled) {
-  const filePath = 'c:\\node\\traywx\\assets\\-11.png';
+  const filePath = 'c:\\traywx\\assets\\-11.png';
   fs.watch(filePath, function (eventName, filename) {
     if (filename) {
       console.log('Event : ' + eventName);

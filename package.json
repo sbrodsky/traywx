@@ -18,6 +18,11 @@
   "repository": "https://github.com/TheJaredWilcurt/nw-tray-example",
   "license": "MIT",
   "dependencies": {
-    "font-list": "^1.4.5"
+    "axios": "^0.26.1",
+    "canvas": "^2.9.0",
+    "font-list": "^1.4.5",
+    "moment": "^2.29.1",
+    "node-storage": "^0.0.9",
+    "xml2js": "^0.4.23"
   }
 }
