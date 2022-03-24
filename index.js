@@ -252,7 +252,6 @@ function getTemp(stationIdObj) {
         console.log('error.response.status = ' + error.response.status);
         console.log('error.response.headers = ' + error.response.headers);
         tray.tooltip = 'Unable to access weather for this locale';
-        tray.icon = "assets/E.png";
       } else if (error.request) {
         // The request was made but no response was received
         tray.tooltip = 'Unable to access weather for this locale';
@@ -262,6 +261,7 @@ function getTemp(stationIdObj) {
         console.log('Unk Error', error.message);
         tray.tooltip = 'Unable to access weather for this locale';
       }
+      tray.icon = "assets/E.png";
     })
 }
 
@@ -277,6 +277,7 @@ function doIcon(tempF) {
       color = '#ffffff';
       var cmd = `node createicon ${tempF} ${color}`;
       console.log('calling ' + cmd);
+      // on mon 3/21, my 48.png icon did not get created and the tray.icon didnot get set to E.png!
       exec(cmd, function (error, stdout, stderr) {
         if (error) {
           console.log(error);
@@ -290,8 +291,8 @@ function doIcon(tempF) {
           tray.tooltip = 'Could not create assets/${tempF}.png';
           return;
         }
+        tray.icon = `assets/${tempF}.png`;
       })
-      tray.icon = `assets/${tempF}.png`;
     }
   }
 }
