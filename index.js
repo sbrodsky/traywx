@@ -24,7 +24,7 @@ var icon_watcher_enabled = 0;
 var parser = new xml2js.Parser();
 var tempF;
 
-const colorsArray = ["Black", "Blue", "Green", "Orange", "White", "Yellow"];
+const colorsArray = ["Aqua","Bisque","Black","Blue","Cyan","Green","Orange","Purple","Red","White","Yellow","Violet"];
 const countryArray = ["Antarctica", "Canada", "Mexico", "USA"];
 const arrayAntarcticaStates = ['South Pole'];
 const arrayCanadaStates = ['AB', 'BC', 'NB', 'NU', 'ON', 'QC', 'SK', 'YT'];
