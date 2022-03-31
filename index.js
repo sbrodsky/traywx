@@ -22,12 +22,15 @@ var statesArray = [];
 var stationsObjArray = [];
 var icon_watcher_enabled = 0;
 var parser = new xml2js.Parser();
-const antarctica = ['South Pole'];
-const canada = ['AB', 'BC', 'NB', 'NU', 'ON', 'QC', 'SK', 'YT'];
+var tempF;
+
+const colorsArray = ["Black", "Blue", "Green", "Orange", "White", "Yellow"];
 const countryArray = ["Antarctica", "Canada", "Mexico", "USA"];
-const mexico = ['AGS', 'BCN', 'BCS', 'CDZ', 'CHH', 'CHP', 'CMP', 'COL', 'DRN', 'DTD', 'JLS', 'GRR', 'MDO',
+const arrayAntarcticaStates = ['South Pole'];
+const arrayCanadaStates = ['AB', 'BC', 'NB', 'NU', 'ON', 'QC', 'SK', 'YT'];
+const arrayMexicoStates = ['AGS', 'BCN', 'BCS', 'CDZ', 'CHH', 'CHP', 'CMP', 'COL', 'DRN', 'DTD', 'JLS', 'GRR', 'MDO',
   'MEX', 'NLE', 'OAX', 'QRO', 'SIN', 'SLP', 'SON', 'TML', 'VLL', 'YCT', 'ZCT'];
-const usa = ['AL', 'AK', 'AZ', 'AR', 'AS', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'GU', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS',
+const arrayUsaStates = ['AL', 'AK', 'AZ', 'AR', 'AS', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'GU', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS',
   'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'CM', 'OH', 'OK', 'OR',
   'PA', 'PR', 'RI', 'SC', 'SD', 'TN', 'TX', 'TT', 'UT', 'VT', 'VA', 'VI', 'WA', 'WV', 'WI', 'WY'];
 
@@ -46,13 +49,14 @@ if (icon_watcher_enabled) {
   });
 }
 
-// get existing user selected params from the store
+// get existing user selected params from the store or default to KBOS station in USA/MA
 if (store.get('selectedStationId')) {
   selectedStationId = store.get('selectedStationId');
   getTemp(store.get('selectedStationId'));
   selectedState = store.get('selectedState');
+  selectedColor = store.get('selectedColor');
   selectedCountry = store.get('selectedCountry');
-  console.log('Saved settings: ' + selectedCountry + ',' + selectedState + ',' + selectedStationId);
+  console.log('Saved settings: ' + selectedCountry + ',' + selectedState + ',' + selectedStationId + ',' + selectedColor);
   //now populate state select based on whatever the user's country is...
   // probably can't do that yet unless the data has been loaded.
 } else {
@@ -61,6 +65,7 @@ if (store.get('selectedStationId')) {
   store.put('selectedCountry', 'USA');
   store.put('selectedState', 'MA');
   store.put('selectedStationId', 'KBOS');
+  store.put('selectedColor', 'white');
 }
 
 // eslint-disable-next-line no-undef
@@ -211,12 +216,14 @@ function getManualStations() {
       console.log('end sort');
 
       console.log('*** all data loaded ***');
+      populateColorSelect();
       populateCountrySelect();
       populateStateSelect();
       populateStationSelect();
     });
   });
 }
+
 function getTemp(stationIdObj) {
   console.log('in getTemp, stationIdObj = ' + stationIdObj);
   let url = `https://api.weather.gov/stations/${stationIdObj}/observations/latest?require_qc=true`;
@@ -228,7 +235,7 @@ function getTemp(stationIdObj) {
   console.log(url);
   axios.get(url)
     .then(response => {
-      var tempF;
+      //var tempF;
       if (selectedStationId == 'ASPS') {
         var responseData = response.data;
         let tmp_match = responseData.match(/-*\d+&deg;\sF/);
@@ -239,7 +246,7 @@ function getTemp(stationIdObj) {
         tempF = Math.round(tempC * 9 / 5) + 32;
       }
 
-      doIcon(tempF);
+      doIcon(tempF, selectedColor);
       var moment = require('moment');
       tray.tooltip = tempF + " updated " + moment().format('MMMM Do YYYY, h:mm a');
       menu.items[0].label = "Fetched: " + moment().format('MMMM Do YYYY, h:mm a');
@@ -265,36 +272,22 @@ function getTemp(stationIdObj) {
     })
 }
 
-function doIcon(tempF) {
-  console.log('doIcon: tempF = ' + tempF);
-  if (fs.existsSync(`assets/${tempF}.png`)) {
-    console.log(`assets/${tempF} exists`);
-    tray.icon = `assets/${tempF}.png`;
-  } else {
-    if (dynamic_icon_generation_enabled) {
-      tray.icon = "assets/icon.png";
-      var color = '#7cfc00';
-      color = '#ffffff';
-      var cmd = `node createicon ${tempF} ${color}`;
-      console.log('calling ' + cmd);
-      // on mon 3/21, my 48.png icon did not get created and the tray.icon didnot get set to E.png!
-      exec(cmd, function (error, stdout, stderr) {
-        if (error) {
-          console.log(error);
-          tray.icon = `assets/E.png`;
-          tray.tooltip = 'Could not create assets/${tempF}.png';
-          return;
-        }
-        if (stderr) {
-          console.log(stderr);
-          tray.icon = `assets/E.png`;
-          tray.tooltip = 'Could not create assets/${tempF}.png';
-          return;
-        }
-        tray.icon = `assets/${tempF}.png`;
-      })
+function doIcon(tempF, foregroundColor) {
+  var cmd = `node createicon ${tempF} ${foregroundColor}`;
+  console.log('calling ' + cmd);
+  exec(cmd, function (error, stdout, stderr) {
+    if (error) {
+      console.log(error);
+      tray.icon = `assets/E.png`;
+      tray.tooltip = 'Could not create assets/${tempF}.png';
     }
-  }
+    if (stderr) {
+      console.log(stderr);
+      tray.icon = `assets/E.png`;
+      tray.tooltip = 'Could not create assets/${tempF}.png';
+    }
+    tray.icon = `assets/${tempF}.png`;
+  })
 }
 
 function populateCountrySelect() {
@@ -305,30 +298,19 @@ function populateCountrySelect() {
   }
 }
 
-// old
-function populateRegionArrays() {
-  console.log("populateRegionArrays");
-  for (const station of stationsObjArray) {
-    if (['AB', 'BC', 'NB', 'NU', 'ON', 'QC', 'SK', 'YT'].includes(station.state[0])) {
-      //console.log('Canada:' + station.state[0]);
-      if (!provincesArray.includes(station.state[0])) {
-        provincesArray.push(station.state[0]);
-      }
-    } else if (['AGS', 'BCN', 'BCS', 'CDZ', 'CHH', 'CHP', 'CMP', 'COL', 'DRN', 'DTD', 'JLS', 'GRR', 'MDO',
-      'MEX', 'NLE', 'OAX', 'QRO', 'SIN', 'SLP', 'SON', 'TML', 'VLL', 'YCT', 'ZCT'].includes(station.state[0])) {
-      //console.log('Mexico:' + station.state[0]);
-      if (!mexicanStatesArray.includes(station.state[0])) {
-        mexicanStatesArray.push(station.state[0]);
-      }
-    } else {
-      //console.log('US' + station.state[0]);
-      if (!statesArray.includes(station.state[0])) {
-        statesArray.push(station.state[0]);
-      }
-    }
+function populateColorSelect() {
+  console.log('populateColorSelect()');
+  var ele = document.getElementById('foreground-color');
+  if (!ele) { console.log('not found')};
+  for (const color of colorsArray) {
+    console.log('looping ' + color);
+    ele.innerHTML = ele.innerHTML +
+      '<option ' + selected(selectedColor, color) + ' value="' + color + '">' + color + '</option>';
   }
+  console.groupEnd('done');
 }
 
+//???
 function populateStateArray() {
   console.log('populate state array');
   for (const station of stationObjArray) {
@@ -346,15 +328,15 @@ function populateStateSelect() {
   // set ary to point to the hardcdoded arrays of states per country
   var ary;
   if (selectedCountry == 'Antarctica') {
-    ary = antarctica;
+    ary = arrayAntarcticaStates;
   } else if (selectedCountry == 'Canada') {
     console.log('user selected country is Canada');
-    console.log('canada const array is ' + canada);
-    ary = canada;
+    ary = arrayCanadaStates;
+    console.log('just set ary to arrayCanadaStates');
   } else if (selectedCountry == 'Mexico') {
-    ary = mexico;
+    ary = arrayMexicoStates;
   } else {
-    ary = usa;
+    ary = arrayUsaStates;
   }
 
   for (const state of ary) {
@@ -394,7 +376,7 @@ function populateStationSelect() {
 }
 
 function selected(s1, s2) {
-  //console.log('selected ' + s1 + ' vs. ' + s2);
+  console.log('selected ' + s1 + ' vs. ' + s2);
   if (s1 == s2) {
     return 'selected';
   } else {
@@ -424,6 +406,19 @@ window.onunload = () => {
   tray = null;
 };
 
+function colorOnChange() {
+  var e = document.getElementById('foreground-color');
+  console.log('colorOnChange()');
+  console.log(JSON.stringify(e));
+  var color = e.options[e.selectedIndex].text;
+  store.put('selectedColor', color);
+  console.log({color});
+  console.log('calling doIcon with parms ' + tempF + ',' + color);
+  doIcon(tempF, e.options[e.selectedIndex].text);
+  console.log('calling populateColorSelect()');
+  console.groupEnd();
+}
+
 // eslint-disable-next-line
 function uiCountryOnChange() {
   var e = document.getElementById('selectCountry');
@@ -433,10 +428,6 @@ function uiCountryOnChange() {
   console.log('uiCountryChange() calling populateStateSelect()');
   populateStateSelect();
   populateStationSelect();
-  //if (selectedCountry == 'Antarctica') {
-  //  document.getElementById("state").style.visibility = "hidden";
-  //  document.getElementById("province").style.visibility = "hidden";
-  //}
 }
 
 // eslint-disable-next-line
@@ -448,10 +439,6 @@ function uiStateOnChange() {
   store.put('selectedState', selectedState);
   console.log('usoc:calling popultatestationselect with a parm of -> ' + selectedState);
   populateStationSelect(selectedState);
-  //if (selectedCountry == 'Antarctica') {
-  //  document.getElementById("state").style.visibility = "hidden";
-  //  document.getElementById("province").style.visibility = "hidden";
-  //}
 }
 
 function uiStationChange(selectObject) {
