@@ -24,9 +24,18 @@
 
     <!-- Foreground Color Select -->
     <div>
-      <p>Foreground Color:</p>
-      <select id="foreground-color" name="foreground-color" onchange="colorOnChange()">
-      </select>
+      <p><label for="foreground-color1">Color for temp less than:</label>
+      <input type="text" name="tempLimit1" size="3" id="templimit1" onkeyup="temperatureLimitsChange(this)"> degrees =>
+      <select id="color1" onchange="colorOnChange(this)"></select>
+      </p>
+      <p><label for="foreground-color2">Color for temp between <span id="templimit1upper">32</span> &
+        <span id="templimit2lower">68</span></label> degrees =>
+        <select id="color2" onchange="colorOnChange(this)"></select>
+      </p>
+      <p><label for="foreground-color3">Color for temp greater than:</label>
+        <input type="text" name="tempLimit3" size="3" id="templimit2" onkeyup="temperatureLimitsChange(this)"> degrees =>
+        <select id="color3" onchange="colorOnChange(this)"></select>
+        </p>
     </div>
 
     <!-- Country Select -->

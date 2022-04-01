@@ -55,6 +55,8 @@ if (store.get('selectedStationId')) {
   getTemp(store.get('selectedStationId'));
   selectedState = store.get('selectedState');
   selectedColor = store.get('selectedColor');
+  selectedColor2 = store.get('selectedColor2');
+  selectedColor3 = store.get('selectedColor3');
   selectedCountry = store.get('selectedCountry');
   console.log('Saved settings: ' + selectedCountry + ',' + selectedState + ',' + selectedStationId + ',' + selectedColor);
   //now populate state select based on whatever the user's country is...
@@ -66,6 +68,8 @@ if (store.get('selectedStationId')) {
   store.put('selectedState', 'MA');
   store.put('selectedStationId', 'KBOS');
   store.put('selectedColor', 'white');
+  store.put('selectedColor2', 'white');
+  store.put('selectedColor3', 'white');
 }
 
 // eslint-disable-next-line no-undef
@@ -216,7 +220,9 @@ function getManualStations() {
       console.log('end sort');
 
       console.log('*** all data loaded ***');
-      populateColorSelect();
+      populateColorSelect('color1');
+      populateColorSelect('color2');
+      populateColorSelect('color3');
       populateCountrySelect();
       populateStateSelect();
       populateStationSelect();
@@ -298,9 +304,10 @@ function populateCountrySelect() {
   }
 }
 
-function populateColorSelect() {
+function populateColorSelect(selectList) {
   console.log('populateColorSelect()');
-  var ele = document.getElementById('foreground-color');
+  console.log('selectList = ' + selectList);
+  var ele = document.getElementById(selectList);
   if (!ele) { console.log('not found')};
   for (const color of colorsArray) {
     console.log('looping ' + color);
@@ -406,16 +413,61 @@ window.onunload = () => {
   tray = null;
 };
 
-function colorOnChange() {
-  var e = document.getElementById('foreground-color');
-  console.log('colorOnChange()');
-  console.log(JSON.stringify(e));
-  var color = e.options[e.selectedIndex].text;
-  store.put('selectedColor', color);
+function temperatureLimitsChange(ele) {
+  var id = ele.id;
+  var limit = ele.value;
+  console.group();
+  console.log('temperatureLimitsChange()');
+  console.log({id});
+  console.log({limit});
+  check_number(limit);
+  store.put(id, limit);
+
+  // update the static midrange temperature limits on the ui
+  if (id === 'templimit1') {
+    //var t = document.getElementById('templimit1upper').textContent;
+    //console.log('existing middleLowerTemperature = ' + t);
+    let t = parseInt(limit) + 1;
+    console.log('add 1... result is ' + t);
+    document.getElementById('templimit1upper').innerHTML = t;
+  }
+  if (id === 'templimit2') {
+    //var t = document.getElementById('templimit1upper').textContent;
+    //console.log('existing middleLowerTemperature = ' + t);
+    let t = parseInt(limit) - 1;
+    console.log('subtract 1... result is ' + t);
+    document.getElementById('templimit2lower').innerHTML = t;
+  }
+
+
+  var middleUpperTemperature = document.getElementById('templimit2lower').textContent;
+  console.log({middleUpperTemperature});
+  console.groupEnd();
+}
+
+function check_number(x) {
+  var numericExpression =/^\-*[0-9]+$/;
+  //if (x.value.match(numbericExpression)) {
+  if (/^\-*[0-9]*$/.test(x)) {
+    return true;
+  } else {
+    alert('Please enter a numeric value');
+    return false;
+  }
+}
+
+function colorOnChange(selectObject) {
+  var color = selectObject.value;
+  //var e = document.getElementById('foreground-color');
+  //console.log('colorOnChange()');
+  //console.log(JSON.stringify(e));
+  //var color = e.options[e.selectedIndex].text;
+  console.group();
   console.log({color});
+  console.log('id is ' + selectObject.id); // foreground-color1
+  store.put(selectObject.id, color);
   console.log('calling doIcon with parms ' + tempF + ',' + color);
-  doIcon(tempF, e.options[e.selectedIndex].text);
-  console.log('calling populateColorSelect()');
+  doIcon(tempF, color);
   console.groupEnd();
 }
 
