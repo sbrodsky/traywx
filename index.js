@@ -54,22 +54,18 @@ if (store.get('selectedStationId')) {
   selectedStationId = store.get('selectedStationId');
   getTemp(store.get('selectedStationId'));
   selectedState = store.get('selectedState');
-  selectedColor = store.get('selectedColor');
-  selectedColor2 = store.get('selectedColor2');
-  selectedColor3 = store.get('selectedColor3');
+  color1 = store.get('color1');
+  color2 = store.get('color2');
+  color3 = store.get('color3');
   selectedCountry = store.get('selectedCountry');
-  console.log('Saved settings: ' + selectedCountry + ',' + selectedState + ',' + selectedStationId + ',' + selectedColor);
-  //now populate state select based on whatever the user's country is...
-  // probably can't do that yet unless the data has been loaded.
 } else {
   getTemp('KBOS');
-  console.log('stationId not found in storage, create default settings for USA,Boston,KBOS');
   store.put('selectedCountry', 'USA');
   store.put('selectedState', 'MA');
   store.put('selectedStationId', 'KBOS');
-  store.put('selectedColor', 'white');
-  store.put('selectedColor2', 'white');
-  store.put('selectedColor3', 'white');
+  store.put('color1', 'white');
+  store.put('color2', 'white');
+  store.put('color3', 'white');
 }
 
 // eslint-disable-next-line no-undef
@@ -168,19 +164,11 @@ nw.Window.get().show();
 
 // get xml-sourced station listing and put in 'stationsObjArray' sorted array
 fs.readFile('assets/stations.xml', function (err, data) {
-  console.log('reading stations.xml');
   parser.parseString(data, function (err, result) {
-    console.log('assign to array');
     stationsObjArray = result['wx_station_index']['station'];
-    console.log('len is ' + stationsObjArray.length);
-    //getManualStations();
   });
   getManualStations();
   console.log('*** all data loaded main ***');
-  // hmm the call to getManualStations() is asynch so the data sort doesn't have time to finish before selects pouplated
-  //populateCountrySelect();
-  //populateStateSelect();
-  //populateStationSelect();
 });
 
 function getManualStations() {
@@ -241,7 +229,6 @@ function getTemp(stationIdObj) {
   console.log(url);
   axios.get(url)
     .then(response => {
-      //var tempF;
       if (selectedStationId == 'ASPS') {
         var responseData = response.data;
         let tmp_match = responseData.match(/-*\d+&deg;\sF/);
@@ -252,7 +239,19 @@ function getTemp(stationIdObj) {
         tempF = Math.round(tempC * 9 / 5) + 32;
       }
 
-      doIcon(tempF, selectedColor);
+      // put an if here based on range/color, sega
+      // templimit1, templimit2
+      // if temp < xx then use color1
+      // if tmp between xx and yy use color2
+      // else use color3
+      if (tempF < store.get('templimit1')) {
+        doIcon(tempF, color1);
+      } else if (tempF > store.get('templimit2')) {
+        doIcon(tempF, color3);
+      } else {
+        doIcon(tempF, color2);
+      }
+      //doIcon(tempF, selectedColor);
       var moment = require('moment');
       tray.tooltip = tempF + " updated " + moment().format('MMMM Do YYYY, h:mm a');
       menu.items[0].label = "Fetched: " + moment().format('MMMM Do YYYY, h:mm a');
@@ -418,9 +417,7 @@ function temperatureLimitsChange(ele) {
   var limit = ele.value;
   console.group();
   console.log('temperatureLimitsChange()');
-  console.log({id});
-  console.log({limit});
-  check_number(limit);
+  validateTemperature(limit);
   store.put(id, limit);
 
   // update the static midrange temperature limits on the ui
@@ -438,14 +435,10 @@ function temperatureLimitsChange(ele) {
     console.log('subtract 1... result is ' + t);
     document.getElementById('templimit2lower').innerHTML = t;
   }
-
-
-  var middleUpperTemperature = document.getElementById('templimit2lower').textContent;
-  console.log({middleUpperTemperature});
   console.groupEnd();
 }
 
-function check_number(x) {
+function validateTemperature(x) {
   var numericExpression =/^\-*[0-9]+$/;
   //if (x.value.match(numbericExpression)) {
   if (/^\-*[0-9]*$/.test(x)) {
@@ -458,10 +451,6 @@ function check_number(x) {
 
 function colorOnChange(selectObject) {
   var color = selectObject.value;
-  //var e = document.getElementById('foreground-color');
-  //console.log('colorOnChange()');
-  //console.log(JSON.stringify(e));
-  //var color = e.options[e.selectedIndex].text;
   console.group();
   console.log({color});
   console.log('id is ' + selectObject.id); // foreground-color1
