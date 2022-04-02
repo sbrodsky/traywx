@@ -311,7 +311,7 @@ function populateColorSelect(selectList) {
   for (const color of colorsArray) {
     console.log('looping ' + color);
     ele.innerHTML = ele.innerHTML +
-      '<option ' + selected(selectedColor, color) + ' value="' + color + '">' + color + '</option>';
+      '<option ' + selected(color1, color) + ' value="' + color + '">' + color + '</option>';
   }
   console.groupEnd('done');
 }
