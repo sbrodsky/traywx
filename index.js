@@ -12,6 +12,7 @@ const { exec } = require("child_process");
 const { exit } = require('process');
 
 const dynamic_icon_generation_enabled = 1;
+var lastFetchSuccessful = true;
 var store = new Storage('assets/node-storage.dat');
 var mexicanStatesArray = [];
 var provincesArray = [];
@@ -23,6 +24,8 @@ var stationsObjArray = [];
 var icon_watcher_enabled = 0;
 var parser = new xml2js.Parser();
 var tempF;
+var tempLimit1;
+var tempLimit2;
 
 const colorsArray = ["Aqua","Bisque","Black","Blue","Cyan","Green","Orange","Purple","Red","White","Yellow","Violet"];
 const countryArray = ["Antarctica", "Canada", "Mexico", "USA"];
@@ -58,14 +61,20 @@ if (store.get('selectedStationId')) {
   color2 = store.get('color2');
   color3 = store.get('color3');
   selectedCountry = store.get('selectedCountry');
+  tempLimit1 = store.get('templimit1');
+  console.log('templimit1=' + tempLimit1);
+  tempLimit2 = store.get('templimit2');
+  console.log('templimit2=' + tempLimit2);
 } else {
   getTemp('KBOS');
   store.put('selectedCountry', 'USA');
   store.put('selectedState', 'MA');
   store.put('selectedStationId', 'KBOS');
-  store.put('color1', 'white');
+  store.put('color1', 'blue');
   store.put('color2', 'white');
-  store.put('color3', 'white');
+  store.put('color3', 'yellow');
+  store.put('templimit1',32);
+  store.put('templimit2',68);
 }
 
 // eslint-disable-next-line no-undef
@@ -213,7 +222,11 @@ function getManualStations() {
       populateColorSelect('color3');
       populateCountrySelect();
       populateStateSelect();
-      populateStationSelect();
+      console.log('templimit1 = ' + tempLimit1);
+      document.getElementById('templimit1').value = tempLimit1;
+      console.log('just set templimit1 to ' + tempLimit1);
+      document.getElementById('templimit2').value = tempLimit2;
+      //console.log('just set templimit2 to ' + tempLimit2);
     });
   });
 }
@@ -239,19 +252,16 @@ function getTemp(stationIdObj) {
         tempF = Math.round(tempC * 9 / 5) + 32;
       }
 
-      // put an if here based on range/color, sega
-      // templimit1, templimit2
-      // if temp < xx then use color1
-      // if tmp between xx and yy use color2
-      // else use color3
-      if (tempF < store.get('templimit1')) {
+      console.log('c1='+ color1 + ',c2=' + color2 + ',c3=' + color3);
+      console.log('templimit1 = ' + tempLimit1);
+      console.log('templimit2 = ' + tempLimit2);
+      if (tempF < tempLimit1) {
         doIcon(tempF, color1);
-      } else if (tempF > store.get('templimit2')) {
+      } else if (tempF > tempLimit2) {
         doIcon(tempF, color3);
       } else {
         doIcon(tempF, color2);
       }
-      //doIcon(tempF, selectedColor);
       var moment = require('moment');
       tray.tooltip = tempF + " updated " + moment().format('MMMM Do YYYY, h:mm a');
       menu.items[0].label = "Fetched: " + moment().format('MMMM Do YYYY, h:mm a');
@@ -263,7 +273,13 @@ function getTemp(stationIdObj) {
         console.log('error.response.data =' + error.response.data);
         console.log('error.response.status = ' + error.response.status);
         console.log('error.response.headers = ' + error.response.headers);
-        tray.tooltip = 'Unable to access weather for this locale';
+        tray.tooltip = 'Unable to access most recent weather for this locale';
+        // if this is the first failed GET, just use most recent temperature
+        // we will have to incorporate the color logic here though!
+        if (lastFetchSuccessful) {
+          doIcon(tempF, "white");
+          lsatFetchSuccessful = false;
+        }
       } else if (error.request) {
         // The request was made but no response was received
         tray.tooltip = 'Unable to access weather for this locale';
@@ -303,17 +319,25 @@ function populateCountrySelect() {
   }
 }
 
+// populateColorSelect.
+// parm selectlist is used 2 ways: 1. pointer to html select and 2. to reference one of 3 color vars
+// and its not working
 function populateColorSelect(selectList) {
-  console.log('populateColorSelect()');
+  console.log('populateColorSelect():');
   console.log('selectList = ' + selectList);
   var ele = document.getElementById(selectList);
-  if (!ele) { console.log('not found')};
   for (const color of colorsArray) {
-    console.log('looping ' + color);
-    ele.innerHTML = ele.innerHTML +
+    if (selectList === 'color1') {
+      ele.innerHTML = ele.innerHTML +
       '<option ' + selected(color1, color) + ' value="' + color + '">' + color + '</option>';
+    } else if (selectList === 'color2') {
+      ele.innerHTML = ele.innerHTML +
+      '<option ' + selected(color2, color) + ' value="' + color + '">' + color + '</option>';
+    } else {
+      ele.innerHTML = ele.innerHTML +
+      '<option ' + selected(color3, color) + ' value="' + color + '">' + color + '</option>';
+    }
   }
-  console.groupEnd('done');
 }
 
 //???
@@ -382,7 +406,7 @@ function populateStationSelect() {
 }
 
 function selected(s1, s2) {
-  console.log('selected ' + s1 + ' vs. ' + s2);
+  //console.log('selected() ' + s1 + ' vs. ' + s2);
   if (s1 == s2) {
     return 'selected';
   } else {
@@ -397,16 +421,13 @@ function selected(s1, s2) {
 //    win.hide();
 //})
 
-
-// get Temperature every 30 min
-// note: 1000ms = 1 sec, * 60 makes it one min, * 30 makes it 30 min
+// get Temperature every 30 min via timer
 async function intervalFunc() {
   getTemp(selectedStationId);
 }
 setInterval(intervalFunc, 1000 * 60 * 30);
 
-
-// Remove tray icon on page leave
+// Remove tray icon on shutdown
 window.onunload = () => {
   tray.remove();
   tray = null;
@@ -424,14 +445,14 @@ function temperatureLimitsChange(ele) {
   if (id === 'templimit1') {
     //var t = document.getElementById('templimit1upper').textContent;
     //console.log('existing middleLowerTemperature = ' + t);
-    let t = parseInt(limit) + 1;
+    let t = (parseInt(limit) + 1).toString();
     console.log('add 1... result is ' + t);
     document.getElementById('templimit1upper').innerHTML = t;
   }
   if (id === 'templimit2') {
     //var t = document.getElementById('templimit1upper').textContent;
     //console.log('existing middleLowerTemperature = ' + t);
-    let t = parseInt(limit) - 1;
+    let t = (parseInt(limit) - 1).toString();
     console.log('subtract 1... result is ' + t);
     document.getElementById('templimit2lower').innerHTML = t;
   }
