@@ -27,7 +27,7 @@ var tempF;
 var tempLimit1;
 var tempLimit2;
 
-const colorsArray = ["Aqua","Bisque","Black","Blue","Cyan","Green","Orange","Purple","Red","White","Yellow","Violet"];
+const colorsArray = ["Aqua", "Bisque", "Black", "Blue", "Cyan", "Green", "Orange", "Purple", "Red", "White", "Yellow", "Violet"];
 const countryArray = ["Antarctica", "Canada", "Mexico", "USA"];
 const arrayAntarcticaStates = ['South Pole'];
 const arrayCanadaStates = ['AB', 'BC', 'NB', 'NU', 'ON', 'QC', 'SK', 'YT'];
@@ -42,12 +42,7 @@ if (icon_watcher_enabled) {
   const filePath = 'c:\\traywx\\assets\\-11.png';
   fs.watch(filePath, function (eventName, filename) {
     if (filename) {
-      console.log('Event : ' + eventName);
-      console.log(filename + ' file Changed, changing tray icon');
       tray.icon = filePath;
-    }
-    else {
-      console.log('filename not provided or check file access permissions')
     }
   });
 }
@@ -62,9 +57,7 @@ if (store.get('selectedStationId')) {
   color3 = store.get('color3');
   selectedCountry = store.get('selectedCountry');
   tempLimit1 = store.get('templimit1');
-  console.log('templimit1=' + tempLimit1);
   tempLimit2 = store.get('templimit2');
-  console.log('templimit2=' + tempLimit2);
 } else {
   getTemp('KBOS');
   store.put('selectedCountry', 'USA');
@@ -73,8 +66,10 @@ if (store.get('selectedStationId')) {
   store.put('color1', 'blue');
   store.put('color2', 'white');
   store.put('color3', 'yellow');
-  store.put('templimit1',32);
-  store.put('templimit2',68);
+  store.put('templimit1', 32);
+  store.put('templimit2', 68);
+  tempLimit1 = 32;
+  tempLimit2 = 68;
 }
 
 // eslint-disable-next-line no-undef
@@ -152,7 +147,7 @@ let menuItems = [
 menuItems.forEach(function (item) {
   // eslint-disable-next-line no-undef
   menu.append(new nw.MenuItem(item));
-  console.log('menu = ' + JSON.stringify(menu));
+  //console.log('menu = ' + JSON.stringify(menu));
 });
 
 // Iterate menu's items
@@ -186,11 +181,8 @@ function getManualStations() {
     console.log('reading manual-stations.xml');
     parser.parseString(data, function (err, result) {
       let stationsObjArray2 = result['wx_station_index']['station'];
-      console.log('manual stations len is ' + stationsObjArray.length);
       stationsObjArray.push.apply(stationsObjArray, stationsObjArray2);
-      console.log('after push len = ' + stationsObjArray.length);
 
-      console.log('start sort');
       var noErrsFound = 1;
       stationsObjArray.sort((a, b) => {
         if (typeof a.state === 'undefined' && noErrsFound) {
@@ -214,7 +206,6 @@ function getManualStations() {
         }
         return 0;
       });
-      console.log('end sort');
 
       console.log('*** all data loaded ***');
       populateColorSelect('color1');
@@ -222,24 +213,21 @@ function getManualStations() {
       populateColorSelect('color3');
       populateCountrySelect();
       populateStateSelect();
-      console.log('templimit1 = ' + tempLimit1);
       document.getElementById('templimit1').value = tempLimit1;
-      console.log('just set templimit1 to ' + tempLimit1);
+      console.log('just set view templimit1 to ' + tempLimit1);
       document.getElementById('templimit2').value = tempLimit2;
-      //console.log('just set templimit2 to ' + tempLimit2);
     });
   });
 }
 
 function getTemp(stationIdObj) {
-  console.log('in getTemp, stationIdObj = ' + stationIdObj);
   let url = `https://api.weather.gov/stations/${stationIdObj}/observations/latest?require_qc=true`;
   // South Pole override 
   if (selectedStationId == 'ASPS') {
     url = 'https://www.usap.gov/components/webcams.cfc?method=outputWeatherDataByStation&cameraLocation=South%20Pole&_=1646448579378';
   }
   // line above this was stationIdObj.value but changed it to stationIdObj instead
-  console.log(url);
+  console.log('getTemp() getting ' + url);
   axios.get(url)
     .then(response => {
       if (selectedStationId == 'ASPS') {
@@ -252,9 +240,6 @@ function getTemp(stationIdObj) {
         tempF = Math.round(tempC * 9 / 5) + 32;
       }
 
-      console.log('c1='+ color1 + ',c2=' + color2 + ',c3=' + color3);
-      console.log('templimit1 = ' + tempLimit1);
-      console.log('templimit2 = ' + tempLimit2);
       if (tempF < tempLimit1) {
         doIcon(tempF, color1);
       } else if (tempF > tempLimit2) {
@@ -311,6 +296,14 @@ function doIcon(tempF, foregroundColor) {
   })
 }
 
+function elementExists(e) { 
+  if(typeof(document.getElementById(e)) != 'undefined' && document.getElementById(e) != null) {
+    alert('Element exists!');
+  } else{
+    alert('Element does not exist!');
+  }
+}
+
 function populateCountrySelect() {
   var ele = document.getElementById('selectCountry');
   for (const country of countryArray) {
@@ -323,19 +316,17 @@ function populateCountrySelect() {
 // parm selectlist is used 2 ways: 1. pointer to html select and 2. to reference one of 3 color vars
 // and its not working
 function populateColorSelect(selectList) {
-  console.log('populateColorSelect():');
-  console.log('selectList = ' + selectList);
   var ele = document.getElementById(selectList);
   for (const color of colorsArray) {
     if (selectList === 'color1') {
       ele.innerHTML = ele.innerHTML +
-      '<option ' + selected(color1, color) + ' value="' + color + '">' + color + '</option>';
+        '<option ' + selected(color1, color) + ' value="' + color + '">' + color + '</option>';
     } else if (selectList === 'color2') {
       ele.innerHTML = ele.innerHTML +
-      '<option ' + selected(color2, color) + ' value="' + color + '">' + color + '</option>';
+        '<option ' + selected(color2, color) + ' value="' + color + '">' + color + '</option>';
     } else {
       ele.innerHTML = ele.innerHTML +
-      '<option ' + selected(color3, color) + ' value="' + color + '">' + color + '</option>';
+        '<option ' + selected(color3, color) + ' value="' + color + '">' + color + '</option>';
     }
   }
 }
@@ -352,7 +343,6 @@ function populateStateArray() {
 
 function populateStateSelect() {
   var selectedCountry = document.getElementById('selectCountry').value;
-  console.log('populateStateSelect():selected country = ' + selectedCountry);
   var ele = document.getElementById('selectstateprovinceregion');
   ele.innerHTML = '';
   // set ary to point to the hardcdoded arrays of states per country
@@ -360,9 +350,7 @@ function populateStateSelect() {
   if (selectedCountry == 'Antarctica') {
     ary = arrayAntarcticaStates;
   } else if (selectedCountry == 'Canada') {
-    console.log('user selected country is Canada');
     ary = arrayCanadaStates;
-    console.log('just set ary to arrayCanadaStates');
   } else if (selectedCountry == 'Mexico') {
     ary = arrayMexicoStates;
   } else {
@@ -376,10 +364,7 @@ function populateStateSelect() {
 }
 
 function populateStationSelect() {
-  console.log('in populateStationSelect()');
-  console.log('selectedStationId = ' + selectedStationId);
   var selectedState = document.getElementById('selectstateprovinceregion').value;
-  console.log('pss:selectedState = ' + selectedState);
   var ele = document.getElementById('selectStation');
 
   ele.innerHTML = '';
@@ -395,14 +380,11 @@ function populateStationSelect() {
 
   // determine what is selected
   selectedStationId = document.getElementById('selectStation').value;
-  console.log('pss:selectedStationId = ' + selectedStationId);
 
   store.put('selectedStationId', selectedStationId);
-  console.log('selectedStationId()... calling getTemp(' + selectedStationId + ')');
   // we dont want to call gettemp if the user hasn't selected a station yet.
   // for antarctica, there is only one station, 
   getTemp(selectedStationId);
-  console.log('after call to gettemp, selectedStationId is ' + selectedStationId);
 }
 
 function selected(s1, s2) {
@@ -433,6 +415,10 @@ window.onunload = () => {
   tray = null;
 };
 
+window.onload = () => {
+  updateTemperatureRange();
+}
+
 function temperatureLimitsChange(ele) {
   var id = ele.id;
   var limit = ele.value;
@@ -440,27 +426,25 @@ function temperatureLimitsChange(ele) {
   console.log('temperatureLimitsChange()');
   validateTemperature(limit);
   store.put(id, limit);
-
-  // update the static midrange temperature limits on the ui
   if (id === 'templimit1') {
-    //var t = document.getElementById('templimit1upper').textContent;
-    //console.log('existing middleLowerTemperature = ' + t);
-    let t = (parseInt(limit) + 1).toString();
-    console.log('add 1... result is ' + t);
-    document.getElementById('templimit1upper').innerHTML = t;
+    tempLimit1 = limit;
+  } else {
+    tempLimit2 = limit;
   }
-  if (id === 'templimit2') {
-    //var t = document.getElementById('templimit1upper').textContent;
-    //console.log('existing middleLowerTemperature = ' + t);
-    let t = (parseInt(limit) - 1).toString();
-    console.log('subtract 1... result is ' + t);
-    document.getElementById('templimit2lower').innerHTML = t;
-  }
+  updateTemperatureRange();
   console.groupEnd();
 }
 
+function updateTemperatureRange() {
+    console.log("utr:tempLimit1 = " + tempLimit1);
+    console.log("utr:tempLimit2 = " + tempLimit2);
+    elementExists('templimit1upper');
+    document.getElementById('templimit1upper').innerHTML = (parseInt(tempLimit1) + 1).toString();
+    document.getElementById('templimit2lower').innerHTML = (parseInt(tempLimit2) - 1).toString();
+}
+
 function validateTemperature(x) {
-  var numericExpression =/^\-*[0-9]+$/;
+  var numericExpression = /^\-*[0-9]+$/;
   //if (x.value.match(numbericExpression)) {
   if (/^\-*[0-9]*$/.test(x)) {
     return true;
@@ -472,22 +456,15 @@ function validateTemperature(x) {
 
 function colorOnChange(selectObject) {
   var color = selectObject.value;
-  console.group();
-  console.log({color});
-  console.log('id is ' + selectObject.id); // foreground-color1
   store.put(selectObject.id, color);
-  console.log('calling doIcon with parms ' + tempF + ',' + color);
   doIcon(tempF, color);
-  console.groupEnd();
 }
 
 // eslint-disable-next-line
 function uiCountryOnChange() {
   var e = document.getElementById('selectCountry');
-  console.log('Selected country is, text = ' + e.options[e.selectedIndex].text + ' / val = ' + e.options[e.selectedIndex].value);
   var selectedCountry = e.options[e.selectedIndex].value;
   store.put('selectedCountry', selectedCountry);
-  console.log('uiCountryChange() calling populateStateSelect()');
   populateStateSelect();
   populateStationSelect();
 }
@@ -495,19 +472,14 @@ function uiCountryOnChange() {
 // eslint-disable-next-line
 function uiStateOnChange() {
   var e = document.getElementById('selectstateprovinceregion');
-  console.log('usoc:Selected state is, text = ' + e.options[e.selectedIndex].text + ' / val = ' + e.options[e.selectedIndex].value);
   var selectedState = e.options[e.selectedIndex].value;
-  console.log('usoc:selectedState is now ' + selectedState);
   store.put('selectedState', selectedState);
-  console.log('usoc:calling popultatestationselect with a parm of -> ' + selectedState);
   populateStationSelect(selectedState);
 }
 
 function uiStationChange(selectObject) {
   var stationId = selectObject.value;
-  console.log('uiStationChange()... stationId is now -> ' + stationId);
   store.put('selectedStationId', stationId);
-  console.log('uiStationChange()... calling getTemp(' + stationId + ')');
   selectedStationId = stationId;
   getTemp(stationId);
 }
