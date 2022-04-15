@@ -167,6 +167,7 @@ nw.Window.get().showDevTools();
 nw.Window.get().show();
 
 // get xml-sourced station listing and put in 'stationsObjArray' sorted array
+console.log('reading station metadata from assets/stations.xml');
 fs.readFile('assets/stations.xml', function (err, data) {
   parser.parseString(data, function (err, result) {
     stationsObjArray = result['wx_station_index']['station'];
@@ -298,9 +299,9 @@ function doIcon(tempF, foregroundColor) {
 
 function elementExists(e) { 
   if(typeof(document.getElementById(e)) != 'undefined' && document.getElementById(e) != null) {
-    alert('Element exists!');
+    //alert('Element exists!');
   } else{
-    alert('Element does not exist!');
+    //alert('Element does not exist!');
   }
 }
 
@@ -364,6 +365,7 @@ function populateStateSelect() {
 }
 
 function populateStationSelect() {
+  // filter stations by selected state/province/region
   var selectedState = document.getElementById('selectstateprovinceregion').value;
   var ele = document.getElementById('selectStation');
 
@@ -374,7 +376,7 @@ function populateStationSelect() {
     var station_state = station.state[0];
     if (station_state === selectedState) {
       ele.innerHTML = ele.innerHTML +
-        '<option ' + selected(selectedStationId, station_id) + ' value="' + station_id + '">' + station_state + ' - ' + station_name + '</option>';
+        '<option ' + selected(selectedStationId, station_id) + ' value="' + station_id + '">' + station_state + ' - ' + station_name + ' (' + station_id + ')' + '</option>';
     }
   }
 
