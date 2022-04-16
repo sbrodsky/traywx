@@ -214,8 +214,8 @@ function getManualStations() {
       populateColorSelect('color3');
       populateCountrySelect();
       populateStateSelect();
+      populateStationSelect();
       document.getElementById('templimit1').value = tempLimit1;
-      console.log('just set view templimit1 to ' + tempLimit1);
       document.getElementById('templimit2').value = tempLimit2;
     });
   });
@@ -438,9 +438,7 @@ function temperatureLimitsChange(ele) {
 }
 
 function updateTemperatureRange() {
-    console.log("utr:tempLimit1 = " + tempLimit1);
-    console.log("utr:tempLimit2 = " + tempLimit2);
-    elementExists('templimit1upper');
+    //elementExists('templimit1upper');
     document.getElementById('templimit1upper').innerHTML = (parseInt(tempLimit1) + 1).toString();
     document.getElementById('templimit2lower').innerHTML = (parseInt(tempLimit2) - 1).toString();
 }
