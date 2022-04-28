@@ -269,7 +269,7 @@ function getTemp(stationIdObj) {
       } else if (error.request) {
         // The request was made but no response was received
         tray.tooltip = 'Unable to access weather for this locale';
-        console.log('error.request=' + error.request);
+        console.log('error.request=' + JSON.stringify(error.request));
       } else {
         // Something happened in setting up the request that triggered an Error
         console.log('Unk Error', error.message);
