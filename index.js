@@ -74,6 +74,7 @@ if (store.get('selectedStationId')) {
   store.put('templimit2', 68);
   tempLimit1 = 32;
   tempLimit2 = 68;
+  nw.Window.get().show();
 }
 
 // eslint-disable-next-line no-undef
@@ -134,14 +135,14 @@ let menuItems = [
       nw.Window.get().show();
     }
   },
-  {
-    type: 'normal',
-    label: 'Hide Main Menu',
-    click: function () {
+  //{
+  //  type: 'normal',
+  //  label: 'Hide Main Menu',
+  //  click: function () {
       // eslint-disable-next-line no-undef
-      nw.Window.get().hide();
-    }
-  },
+  //    nw.Window.get().hide();
+  //  }
+  //},
   {
     type: 'separator'
   },
@@ -176,9 +177,9 @@ tray.menu = menu;
 
 // show main window and dev tools windows while in development-mode
 // eslint-disable-next-line no-undef
-nw.Window.get().showDevTools();
+// nw.Window.get().showDevTools();
 // eslint-disable-next-line no-undef
-nw.Window.get().show();
+// nw.Window.get().show();
 
 // get xml-sourced station listing and put in 'stationsObjArray' sorted array
 console.log('reading station metadata from assets/stations.xml');
@@ -276,22 +277,24 @@ function getTemp(stationIdObj) {
         console.log('error.response.status = ' + error.response.status);
         console.log('error.response.headers = ' + error.response.headers);
         tray.tooltip = 'Unable to access most recent weather for this locale';
+        tray.icon = "assets/E.png";
         // if this is the first failed GET, just use most recent temperature
         // we will have to incorporate the color logic here though!
         if (lastFetchSuccessful) {
           doIcon(tempF, "white");
-          lsatFetchSuccessful = false;
+          lastFetchSuccessful = false;
         }
       } else if (error.request) {
         // The request was made but no response was received
         tray.tooltip = 'Unable to access weather for this locale';
         console.log('error.request=' + JSON.stringify(error.request));
+        tray.icon = "assets/E.png";
       } else {
         // Something happened in setting up the request that triggered an Error
         console.log('Unk Error', error.message);
         tray.tooltip = 'Unable to access weather for this locale';
+        tray.icon = "assets/E.png";
       }
-      tray.icon = "assets/E.png";
     })
 }
 
@@ -315,9 +318,7 @@ function doIcon(tempF, foregroundColor) {
 
 function elementExists(e) { 
   if(typeof(document.getElementById(e)) != 'undefined' && document.getElementById(e) != null) {
-    //alert('Element exists!');
-  } else{
-    //alert('Element does not exist!');
+    return true;
   }
 }
 
@@ -359,7 +360,7 @@ function populateStateArray() {
 }
 
 function populateStateSelect() {
-  var selectedCountry = document.getElementById('selectCountry').value;
+  selectedCountry = document.getElementById('selectCountry').value;
   var ele = document.getElementById('selectstateprovinceregion');
   ele.innerHTML = '';
   // set ary to point to the hardcdoded arrays of states per country
