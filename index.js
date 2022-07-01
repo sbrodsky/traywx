@@ -11,6 +11,9 @@ var Storage = require('node-storage');
 const { exec } = require("child_process");
 const { exit } = require('process');
 
+let color1 = '';
+let color2 = '';
+let color3 = '';
 const dynamic_icon_generation_enabled = 1;
 var lastFetchSuccessful = true;
 var store = new Storage('assets/node-storage.dat');
@@ -63,6 +66,7 @@ if (store.get('selectedStationId')) {
   store.put('selectedCountry', 'USA');
   store.put('selectedState', 'MA');
   store.put('selectedStationId', 'KBOS');
+  store.put('stationName')
   store.put('color1', 'blue');
   store.put('color2', 'white');
   store.put('color3', 'yellow');
@@ -88,11 +92,19 @@ let itemChecked = true;
 let menuItems = [
   {
     type: 'normal',
+    label: 'Refetch Now ...',
+    click: function () {
+      console.log('Refetch-Now clicked, calling getTemp('+selectedStationId+')');
+      getTemp(selectedStationId);
+    }
+  },
+  {
+    type: 'normal',
     label: 'Fetched at ...'
   },
   {
     type: 'normal',
-    label: 'Data Fetched at ...'
+    label: 'Measurement Date ...'
   },
   {
     type: 'separator'
@@ -108,7 +120,7 @@ let menuItems = [
   },
   {
     type: 'normal',
-    label: 'Open Dev Tools',
+    label: 'Logging (dev tools)',
     click: function () {
       // eslint-disable-next-line no-undef
       nw.Window.get().showDevTools();
@@ -116,7 +128,7 @@ let menuItems = [
   },
   {
     type: 'normal',
-    label: 'Show Window',
+    label: 'Main Menu',
     click: function () {
       // eslint-disable-next-line no-undef
       nw.Window.get().show();
@@ -124,7 +136,7 @@ let menuItems = [
   },
   {
     type: 'normal',
-    label: 'Hide Window',
+    label: 'Hide Main Menu',
     click: function () {
       // eslint-disable-next-line no-undef
       nw.Window.get().hide();
@@ -142,13 +154,15 @@ let menuItems = [
     }
   }
 ];
+console.log('menuItems = ' + JSON.stringify(menuItems));
 
 // Append all menu items to the menu
 menuItems.forEach(function (item) {
   // eslint-disable-next-line no-undef
   menu.append(new nw.MenuItem(item));
-  //console.log('menu = ' + JSON.stringify(menu));
+  console.log('appending menuitem ' + JSON.stringify(item));
 });
+console.log('menu = ' + JSON.stringify(menu));
 
 // Iterate menu's items
 //for (var i = 0; i < menu.items.length; ++i) {
@@ -236,7 +250,8 @@ function getTemp(stationIdObj) {
         let tmp_match = responseData.match(/-*\d+&deg;\sF/);
         tempF = tmp_match.toString().match(/-*\d+/);
       } else {
-        menu.items[1].label = 'Data: ' + response.data.properties.timestamp;
+        // TODO: Should not hardcode index
+        menu.items[2].label = 'Data: ' + response.data.properties.timestamp; // hardcode
         var tempC = response.data.properties.temperature.value;
         tempF = Math.round(tempC * 9 / 5) + 32;
       }
@@ -250,7 +265,8 @@ function getTemp(stationIdObj) {
       }
       var moment = require('moment');
       tray.tooltip = tempF + " updated " + moment().format('MMMM Do YYYY, h:mm a');
-      menu.items[0].label = "Fetched: " + moment().format('MMMM Do YYYY, h:mm a');
+      // TODO: Should not hardcode index
+      menu.items[1].label = "Fetched: " + moment().format('MMMM Do YYYY, h:mm a'); // hardcode
 
     })
     .catch(function (error) {
