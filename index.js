@@ -438,6 +438,17 @@ window.onload = () => {
   updateTemperatureRange();
 }
 
+function sourceChange(ele) {
+  var id = ele.id;
+  var value = ele.value;
+  console.log(value);
+  if (value == 'cpu') {
+    tray.icon = 'c:\\node\\z.png';
+  } else {
+    getTemp(selectedStationId);
+  }
+}
+
 function temperatureLimitsChange(ele) {
   var id = ele.id;
   var limit = ele.value;

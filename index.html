@@ -60,10 +60,12 @@
         <option value="">-- Select --</option>
     </select>
 
-
-
-
-
+    <!--Outside Weather Temp or CPU temperature -->
+    <p>Select source</p>
+    <select id="selectSource" onchange="sourceChange(this)">
+      <option value="cpu">CPU</option>
+      <option value="wx">Weather Station Data</option>
+    </select>
 
   <br><br>
   <p>Select Units</p>
